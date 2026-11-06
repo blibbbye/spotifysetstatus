@@ -716,6 +716,10 @@ static void paint(HDC out){
  center(g,L"LISTENING TO SPOTIFY",infoX,(float)u.card.top+190,245,30,9,Color(255,105,230,147),true);
  txt(g,L"Set the song, artist and cover from the website.",infoX,(float)u.card.top+232,infoW,18,10,Color(255,150,164,153));
  txt(g,L"This app keeps the Discord connection alive; it does not play audio.",infoX,(float)u.card.top+252,infoW,18,9,Color(255,110,127,116));
+ auto drawBtn=[&](RECT r,const wchar_t*label,bool active,bool accent,int size){
+  fill(g,(float)r.left,(float)r.top,(float)(r.right-r.left),(float)(r.bottom-r.top),9,accent?Color(255,29,185,84):(active?Color(255,31,54,67):Color(255,27,33,42)));
+  center(g,label,(float)r.left,(float)r.top,(float)(r.right-r.left),(float)(r.bottom-r.top),(float)size,accent?Color(255,8,17,28):(active?Color(255,130,195,245):Color(255,209,216,227)),true);
+ };
 
  fill(g,(float)u.footer.left,(float)u.footer.top,(float)(u.footer.right-u.footer.left),(float)(u.footer.bottom-u.footer.top),16,Color(255,17,21,29));
  const int ds=DiscordState.load();
