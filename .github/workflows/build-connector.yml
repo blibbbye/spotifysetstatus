@@ -58,6 +58,7 @@ jobs:
           git diff --cached --quiet
           if ($LASTEXITCODE -ne 0) {
             git commit -m "Publish Spotify Status Connector"
+            git pull --rebase origin main
             git push
           }
 
