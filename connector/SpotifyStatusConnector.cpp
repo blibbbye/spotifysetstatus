@@ -712,29 +712,10 @@ static void paint(HDC out){
  fill(g,infoX,(float)u.card.top+145,isPlaying?100:84,(float)u.card.top+171-((float)u.card.top+145),10,isPlaying?Color(255,20,54,47):Color(255,30,36,46));
  center(g,isPlaying?L"●  PLAYING":L"Ⅱ  PAUSED",infoX,(float)u.card.top+145,isPlaying?100:84,26,9,isPlaying?Color(255,124,226,175):Color(255,161,174,192),true);
 
- const float barY=(float)u.seek.top+7;
- fill(g,(float)u.seek.left,barY,(float)(u.seek.right-u.seek.left),5,3,Color(255,42,49,61));
- const double ratio=p.dur>0?std::clamp(p.pos/p.dur,0.0,1.0):0.0;
- if(ratio>0)fill(g,(float)u.seek.left,barY,(float)(u.seek.right-u.seek.left)*(float)ratio,5,3,Color(255,29,185,84));
- const std::wstring elapsed=durationText(p.pos),duration=durationText(p.dur);
- txt(g,elapsed.c_str(),(float)u.seek.left,(float)u.seek.top-17,70,14,8,Color(255,125,139,157));
- txt(g,duration.c_str(),(float)u.seek.right-70,(float)u.seek.top-17,70,14,8,Color(255,125,139,157));
- auto drawBtn=[&](RECT r,const wchar_t*label,bool active,bool accent,int size){
-  fill(g,(float)r.left,(float)r.top,(float)(r.right-r.left),(float)(r.bottom-r.top),9,accent?Color(255,29,185,84):(active?Color(255,31,54,67):Color(255,27,33,42)));
-  center(g,label,(float)r.left,(float)r.top,(float)(r.right-r.left),(float)(r.bottom-r.top),(float)size,accent?Color(255,8,17,28):(active?Color(255,116,230,157):Color(255,209,216,227)),true);
- };
- drawBtn(u.previous,L"PREV",false,false,9);
- drawBtn(u.play,p.playing?L"Ⅱ  PAUSE":L"▶  PLAY",false,true,10);
- drawBtn(u.next,L"NEXT",false,false,9);
- drawBtn(u.shuffle,L"SHUFFLE",p.shuffle,false,8);
- drawBtn(u.repeat,p.repeat=="one"?L"REPEAT 1":L"REPEAT",p.repeat!="off",false,8);
- txt(g,L"VOL", (float)u.volume.left-33,(float)u.volume.top+6,28,15,8,Color(255,123,137,155),true);
- fill(g,(float)u.volume.left,(float)u.volume.top+11,(float)(u.volume.right-u.volume.left),5,3,Color(255,42,49,61));
- const double vol=std::clamp(p.volume,0.0,1.0);
- if(vol>0)fill(g,(float)u.volume.left,(float)u.volume.top+11,(float)(u.volume.right-u.volume.left)*(float)vol,5,3,Color(255,29,185,84));
- fill(g,(float)u.volume.left+(float)(u.volume.right-u.volume.left)*(float)vol-4,(float)u.volume.top+6,8,15,4,Color(255,227,240,255));
- wchar_t volPct[16]{};swprintf(volPct,16,L"%d%%",(int)std::lround(vol*100));
- txt(g,volPct,(float)u.volume.right-33,(float)u.volume.top-13,33,12,8,Color(255,140,153,171),true);
+ fill(g,infoX,(float)u.card.top+190,245,30,10,Color(255,20,48,31));
+ center(g,L"LISTENING TO SPOTIFY",infoX,(float)u.card.top+190,245,30,9,Color(255,105,230,147),true);
+ txt(g,L"Set the song, artist and cover from the website.",infoX,(float)u.card.top+232,infoW,18,10,Color(255,150,164,153));
+ txt(g,L"This app keeps the Discord connection alive; it does not play audio.",infoX,(float)u.card.top+252,infoW,18,9,Color(255,110,127,116));
 
  fill(g,(float)u.footer.left,(float)u.footer.top,(float)(u.footer.right-u.footer.left),(float)(u.footer.bottom-u.footer.top),16,Color(255,17,21,29));
  const int ds=DiscordState.load();
@@ -768,50 +749,9 @@ static LRESULT CALLBACK wnd(HWND h,UINT msg,WPARAM w,LPARAM l){
    if(hit(u.reconnect,p)){setDiscordStatus(0,"Reconnect requested...");DiscordReconnectRequested=true;InvalidateRect(h,nullptr,FALSE);return 0;}
    if(hit(u.settings,p)){openSettingsWindow();return 0;}
    if(p.y>=u.footer.top&&p.y<=u.footer.bottom&&p.x<u.openDiscord.left-8){MessageBoxW(h,connectionDetails().c_str(),L"Discord connection details",MB_OK|MB_ICONINFORMATION);return 0;}
-   if(hit(u.previous,p)){issue("prev");return 0;}
-   if(hit(u.play,p)){issue("toggle");return 0;}
-   if(hit(u.next,p)){issue("next");return 0;}
-   if(hit(u.shuffle,p)){issue("shuffle");return 0;}
-   if(hit(u.repeat,p)){issue("repeat");return 0;}
-   if(hit(u.seek,p)){
-    DragSeeking=true;SetCapture(h);
-    double d;{std::lock_guard<std::mutex> lock(M);d=P.dur;}
-    if(d>0)issue("seek",std::clamp((p.x-u.seek.left)/(double)std::max(1.0,(double)(u.seek.right-u.seek.left)),0.0,1.0)*d);
-    return 0;
-   }
-   if(hit(u.volume,p)){
-    DragVolume=true;SetCapture(h);
-    issue("volume",std::clamp((p.x-u.volume.left)/(double)std::max(1.0,(double)(u.volume.right-u.volume.left)),0.0,1.0));
-    return 0;
-   }
    return 0;
-  }
-  case WM_MOUSEMOVE:{
-   if(!DragSeeking&&!DragVolume)return 0;
-   POINT p{GET_X_LPARAM(l),GET_Y_LPARAM(l)};RECT rc{};GetClientRect(h,&rc);const UiLayout u=layoutFor(rc.right,rc.bottom);
-   if(DragSeeking){
-    double d;{std::lock_guard<std::mutex> lock(M);d=P.dur;}
-    if(d>0)issue("seek",std::clamp((p.x-u.seek.left)/(double)std::max(1.0,(double)(u.seek.right-u.seek.left)),0.0,1.0)*d);
-   }else{
-    issue("volume",std::clamp((p.x-u.volume.left)/(double)std::max(1.0,(double)(u.volume.right-u.volume.left)),0.0,1.0));
-   }
-   return 0;
-  }
-  case WM_LBUTTONUP:
-   if(DragSeeking||DragVolume){DragSeeking=false;DragVolume=false;ReleaseCapture();return 0;}return 0;
-  case WM_MOUSEWHEEL:{
-   RECT rc{};GetClientRect(h,&rc);const UiLayout u=layoutFor(rc.right,rc.bottom);
-   POINT p{GET_X_LPARAM(l),GET_Y_LPARAM(l)};ScreenToClient(h,&p);
-   if(hit(u.volume,p)){
-    double v;{std::lock_guard<std::mutex> lock(M);v=P.volume;}
-    v=std::clamp(v+(GET_WHEEL_DELTA_WPARAM(w)>0?0.05:-0.05),0.0,1.0);issue("volume",v);return 0;
-   }
-   break;
   }
   case WM_KEYDOWN:
-   if(w==VK_SPACE){issue("toggle");return 0;}
-   if(w==VK_LEFT){issue("prev");return 0;}
-   if(w==VK_RIGHT){issue("next");return 0;}
    if(w==VK_F5){setDiscordStatus(0,"Reconnect requested...");DiscordReconnectRequested=true;return 0;}
    break;
   case WM_TIMER:InvalidateRect(h,nullptr,FALSE);return 0;
